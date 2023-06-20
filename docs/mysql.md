@@ -21,6 +21,38 @@ DCL 控制语言
 
 [小白都能懂的Mysql主从复制原理（原理+实操） - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/164518315)
 
+# MySQL的主从复制方式
+
+主从复制有三种模式，分别是基于SQL语句的复制(statement-based replication, SBR)，基于行的复制(row-based replication, RBR)，混合模式复制(mixed-based replication, MBR)。对应的，binlog的格式也有三种：STATEMENT，ROW，MIXED 
+
+mysql默认的主从复制模式是ROW
+
+
+
+模式划分
+
+- STATEMENT模式（SBR）
+
+记录每一条SQL修改
+
+每一条会修改数据的sql语句会记录到binlog中。优点是并不需要记录每一条 sql语句和每一行的数据变化，减少了binlog日志量，节约IO，提高性能。
+缺点是在某些情况下会导致 master-slave中的数据不一致(如sleep()函数， last_insert_id()，以及user-defined functions(udf)等会出现问题)
+
+- ROW模式（RBR）
+
+仅记录修改的内容，不记录具体的SQL
+
+不记录每条sql语句的上下文信息，仅需记录哪条数据被修改了，修改成什么样了。而且不会出现某些特定情况下的存储过程、或function、或trigger的调用和触发无法被正确复制的问题。
+缺点是会产生大量的日志，尤其是altertable的时候会让日志暴涨。
+
+- MIXED模式（MBR）
+
+以上两种模式的混合使用，一般的复制使用STATEMENT模式保存binlog，对于STATEMENT模式无法复制的操作使用ROW模式保存binlog，MySQL会根据执行的SQL语句选择日志保存方式。
+建议使用MIXED模式~
+————————————————
+版权声明：本文为CSDN博主「我能在河边钓一整天的鱼」的原创文章，遵循CC 4.0 BY-SA版权协议，转载请附上原文出处链接及本声明。
+原文链接：https://blog.csdn.net/Delicious_Life/article/details/106162719
+
 # 增删改查
 
 create table table_name (column_name, column_type);
@@ -80,6 +112,13 @@ delete 是删除表中的数据，不删除表结构，速度最慢，但可以�
 # mysql锁
 # mysql事务隔离级别
 # 给定一条sql语句，给定一个隔离级别，说说会加上哪些锁，会发生什么mysql储存擎
+
+# MVCC(多版本并发控制)解决了什么问题
+答:
+1、"脏读、不可重复读、幻读",都是数据库读一致性的问题,必须由数据库提供一定的事务隔离机制的完善,数据库在实现事务隔离的方式,可以分为以下两种
+    a、一种是在读取数据前，对其加锁，阻止其他事务对数据进行修改
+    b、另一种是不加任何锁，通过一定机制生成一个数据的请求时间点的一致性数据快照，并用这个快照来提供一定级别(语句级或事务级)的一致性读取。
+       从用户来看，好像是数据库可以提供同一数据多个版本，因此也称为MVCC。
 
 ## **1. 数据库的三范式是什么？**
 
